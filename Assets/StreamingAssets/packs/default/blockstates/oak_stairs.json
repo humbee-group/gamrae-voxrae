@@ -1,0 +1,38 @@
+{
+  "variants": {
+    "facing=north,half=bottom,shape=straight": {
+      "model": "block/oak_stairs"
+    },
+    "facing=south,half=bottom,shape=straight": {
+      "model": "block/oak_stairs",
+      "y": 180
+    },
+    "facing=west,half=bottom,shape=straight": {
+      "model": "block/oak_stairs",
+      "y": 270
+    },
+    "facing=east,half=bottom,shape=straight": {
+      "model": "block/oak_stairs",
+      "y": 90
+    },
+    "facing=north,half=top,shape=straight": {
+      "model": "block/oak_stairs",
+      "x": 180
+    },
+    "facing=south,half=top,shape=straight": {
+      "model": "block/oak_stairs",
+      "x": 180,
+      "y": 180
+    },
+    "facing=west,half=top,shape=straight": {
+      "model": "block/oak_stairs",
+      "x": 180,
+      "y": 270
+    },
+    "facing=east,half=top,shape=straight": {
+      "model": "block/oak_stairs",
+      "x": 180,
+      "y": 90
+    }
+  }
+}
