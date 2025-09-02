@@ -1,5 +1,5 @@
 // Assets/Scripts/Voxel/Meshing/ModelBakery.cs
-// Ne jamais supprimer les commentaires
+// inchangé côté signatures, conservé pour les blocs non-cubes si tu en ajoutes plus tard.
 
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,18 +9,16 @@ namespace Voxel.Meshing
 {
     public static class ModelBakery
     {
-        // Faces cube unité dans l'espace section (voxel local [0..1])
-        // Ordre indices Tri CW pour Unity
         private static readonly Vector3[] CUBE_VERTS =
         {
-            new(0,0,0), new(1,0,0), new(1,1,0), new(0,1,0), // Back  (Z-)
-            new(0,0,1), new(1,0,1), new(1,1,1), new(0,1,1), // Front (Z+)
+            new(0,0,0), new(1,0,0), new(1,1,0), new(0,1,0),
+            new(0,0,1), new(1,0,1), new(1,1,1), new(0,1,1),
         };
 
         private static readonly int[][] FACE_QUADS =
         {
-            new[] {0,1,2,3}, // North (Back, Z-)
-            new[] {5,4,7,6}, // South (Front, Z+)
+            new[] {0,1,2,3}, // North (Z-)
+            new[] {5,4,7,6}, // South (Z+)
             new[] {4,0,3,7}, // West  (X-)
             new[] {1,5,6,2}, // East  (X+)
             new[] {3,2,6,7}, // Up    (Y+)
@@ -29,12 +27,12 @@ namespace Voxel.Meshing
 
         private static readonly Vector3[] FACE_NORMALS =
         {
-            new(0, 0,-1), // North
-            new(0, 0, 1), // South
-            new(-1,0, 0), // West
-            new(1, 0, 0), // East
-            new(0, 1, 0), // Up
-            new(0,-1, 0), // Down
+            new(0, 0,-1),
+            new(0, 0, 1),
+            new(-1,0, 0),
+            new(1, 0, 0),
+            new(0, 1, 0),
+            new(0,-1, 0),
         };
 
         public static void EmitQuad(
@@ -46,32 +44,17 @@ namespace Voxel.Meshing
             var q = FACE_QUADS[faceIndex];
             int baseIndex = v.Count;
 
-            // Positions
             for (int i = 0; i < 4; i++)
                 v.Add(origin + CUBE_VERTS[q[i]]);
 
-            // Normales
             var nor = FACE_NORMALS[faceIndex];
             n.Add(nor); n.Add(nor); n.Add(nor); n.Add(nor);
 
-            // UV (option uvlock simple: ne pas tourner en fonction de la face)
-            if (uvlock)
-            {
-                uv0.Add(new Vector2(uv.xMin, uv.yMin));
-                uv0.Add(new Vector2(uv.xMax, uv.yMin));
-                uv0.Add(new Vector2(uv.xMax, uv.yMax));
-                uv0.Add(new Vector2(uv.xMin, uv.yMax));
-            }
-            else
-            {
-                // mapping par face “standard”
-                uv0.Add(new Vector2(uv.xMin, uv.yMin));
-                uv0.Add(new Vector2(uv.xMax, uv.yMin));
-                uv0.Add(new Vector2(uv.xMax, uv.yMax));
-                uv0.Add(new Vector2(uv.xMin, uv.yMax));
-            }
+            uv0.Add(new Vector2(uv.xMin, uv.yMin));
+            uv0.Add(new Vector2(uv.xMax, uv.yMin));
+            uv0.Add(new Vector2(uv.xMax, uv.yMax));
+            uv0.Add(new Vector2(uv.xMin, uv.yMax));
 
-            // Indices par RenderType
             var target = rt switch
             {
                 RenderType.Opaque => idxOpaque,

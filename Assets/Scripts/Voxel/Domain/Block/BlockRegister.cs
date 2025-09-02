@@ -9,15 +9,19 @@ public static class BlockRegister
 {
     static bool _initialized;
 
-    public static void Init()
-    {
-        if (_initialized) return;
-        _initialized = true;
+        public static void Init()
+        {
+            if (_initialized) return;
+            _initialized = true;
 
-        BlockRegistry.Register("minecraft:stone", new OpaqueCubeBlock());
-        BlockRegistry.Register("minecraft:oak_log", new LogBlock());
-        BlockRegistry.Register("minecraft:oak_slab", new SlabBlock());
-        BlockRegistry.Register("minecraft:oak_stairs", new StairsBlock());
+
+            BlockRegistry.Register("stone", new OpaqueCubeBlock());
+            BlockRegistry.Register("dirt", new OpaqueCubeBlock());
+            BlockRegistry.Register("grass", new GrassBlock());
+            BlockRegistry.Register("oak_log", new ColumnBlock());
+            BlockRegistry.Register("oak_slab", new SlabBlock());
+            BlockRegistry.Register("oak_stairs", new StairsBlock());
+            BlockRegistry.Register("torch", new TorchBlock());
     }
 }
 }

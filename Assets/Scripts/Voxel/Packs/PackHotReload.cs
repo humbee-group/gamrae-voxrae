@@ -3,6 +3,7 @@
 
 using System.IO;
 using UnityEngine;
+using Voxel.Client.Renderer.Chunk; // ChunkRenderDispatcher
 
 #if UNITY_EDITOR
 namespace Voxel.Packs
@@ -16,8 +17,8 @@ namespace Voxel.Packs
         [Tooltip("UvProviderFromPack à recharger")]
         public UvProviderFromPack provider;
 
-        [Tooltip("Leave empty to mark all LevelRenderers dirty")]
-        public Voxel.Runtime.LevelRenderer[] renderers;
+        [Tooltip("Laisser vide pour marquer tous les ChunkRenderDispatcher dirty")]
+        public ChunkRenderDispatcher[] dispatchers;
 
         [Tooltip("Intervalle de vérification (s)")]
         public float checkInterval = 0.5f;
@@ -36,6 +37,7 @@ namespace Voxel.Packs
 
         private void Update()
         {
+            // En mode Éditeur hors Play, on “simule” le temps pour vérifier périodiquement
             timer += Application.isPlaying ? Time.deltaTime : 0.2f;
             if (timer < checkInterval) return;
             timer = 0f;
@@ -46,18 +48,18 @@ namespace Voxel.Packs
             if (t <= lastWrite) return;
             lastWrite = t;
 
-            // rebuild atlas + resolver
+            // Rebuild atlas + resolver
             provider?.Rebuild();
 
-            // re-mesh
-            if (renderers != null && renderers.Length > 0)
+            // Remesh: marque tous les dispatchers dirty
+            if (dispatchers != null && dispatchers.Length > 0)
             {
-                foreach (var lr in renderers) lr?.MarkAllRegisteredDirty();
+                foreach (var d in dispatchers) d?.MarkAllRegisteredDirty();
             }
             else
             {
-                var all = Object.FindObjectsByType<Voxel.Runtime.LevelRenderer>(FindObjectsSortMode.None);
-                foreach (var lr in all) lr.MarkAllRegisteredDirty();
+                var all = Object.FindObjectsByType<ChunkRenderDispatcher>(FindObjectsSortMode.None);
+                foreach (var d in all) d.MarkAllRegisteredDirty();
             }
 
             Debug.Log("[PackHotReload] Pack modifié → rebuild atlas + remesh.");

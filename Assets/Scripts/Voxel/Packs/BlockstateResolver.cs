@@ -1,5 +1,5 @@
 // Assets/Scripts/Voxel/Packs/BlockstateResolver.cs
-// Utilise le registre statique
+// Résolution robuste : variante sans "model" -> hérite du modèle de la variante par défaut.
 
 using System.Linq;
 using System.Collections.Generic;
@@ -21,28 +21,42 @@ namespace Voxel.Packs
         {
             if (_cache.TryGetValue((id, state), out mref)) return true;
 
-            var block = BlockRegistry.Get(id);
-            var fullName = block.Name; // "minecraft:stone"
-            var name = fullName.Contains(":") ? fullName.Split(':')[1] : fullName;
+            var blk = BlockRegistry.Get(id);
+            var name = blk.Name;
+            int colon = name.IndexOf(':');
+            if (colon >= 0) name = name[(colon + 1)..];
 
             if (!_pack.blockstates.TryGetValue(name, out var bs) || bs.variants == null || bs.variants.Count == 0)
             { mref = default; return false; }
 
-            var props = block.DecodeState(state);
-            var stateKey = Voxel.Domain.Blocks.StateKeyBuilder.Build(props);
+            var props = blk.DecodeState(state);
+            var key = Voxel.Domain.Blocks.StateKeyBuilder.Build(props);
 
-            BlockstateJson.Variant v;
-            if (!string.IsNullOrEmpty(stateKey) && bs.variants.TryGetValue(stateKey, out v))
-            { /* exact */ }
-            else
-            { v = bs.variants.First().Value; }
+            bs.variants.TryGetValue(key ?? "", out var vExact);
+            bs.variants.TryGetValue("", out var vDefault);
+
+            var vChosen = vExact ?? vDefault ?? bs.variants.Values.First();
+
+            // Héritage du modèle si manquant
+            string model = vChosen.model;
+            if (string.IsNullOrEmpty(model))
+            {
+                if (vDefault != null && !string.IsNullOrEmpty(vDefault.model))
+                    model = vDefault.model;
+                else
+                {
+                    var any = bs.variants.Values.FirstOrDefault(v => !string.IsNullOrEmpty(v.model));
+                    if (any != null) model = any.model;
+                }
+            }
+            if (string.IsNullOrEmpty(model)) { mref = default; return false; }
 
             mref = new ModelRef
             {
-                model = v.model,
-                rotX = v.x ?? 0,
-                rotY = v.y ?? 0,
-                uvlock = v.uvlock ?? false
+                model = model,
+                rotX = vChosen.x ?? 0,
+                rotY = vChosen.y ?? 0,
+                uvlock = vChosen.uvlock ?? false
             };
             _cache[(id, state)] = mref;
             return true;

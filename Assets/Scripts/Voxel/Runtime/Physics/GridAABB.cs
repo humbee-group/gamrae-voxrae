@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Voxel.Runtime.Physics
 {
-    /// AABB simple et fiable : Y -> X -> Z, sous-pas anti-tunnel, pas de step-up, pas de “push-up”.
+    /// AABB simple et fiable : Y -> X -> Z, sous-pas anti-tunnel, skin pour éviter le “hover”.
     public static class GridAABB
     {
         public struct Box
@@ -25,8 +25,9 @@ namespace Voxel.Runtime.Physics
             public bool hitX, hitZ; // impact horizontal (axe)
         }
 
-        const float EPS = 1e-4f;
-        const float VOX = 1f; // 1 unité = 1 voxel (adapter le monde si besoin)
+        const float EPS  = 1e-4f;
+        const float SKIN = 1e-3f;  // petit décalage pour éviter de “survoler”
+        const float VOX  = 1f;     // 1 unité = 1 voxel
 
         public static MoveResult MoveAABB(Voxel.Runtime.WorldRuntime world, Box aabb, Vector3 velocity, float dt)
         {
@@ -53,8 +54,9 @@ namespace Voxel.Runtime.Physics
                     float corr = ResolveAxis(world, new Box(after, aabb.half), 1, dy);
                     if (corr > 0f)
                     {
-                        after.y += (dy < 0f ? +corr : -corr);
-                        if (dy < 0f) { res.onGround = true; res.velocity.y = 0f; /* pas de push-up */ }
+                        // applique un skin minuscule pour éviter un “lévitation” par flottement flottant
+                        after.y += (dy < 0f ? +corr + SKIN : -corr - SKIN);
+                        if (dy < 0f) { res.onGround = true; res.velocity.y = 0f; }
                         else         { res.hitHead  = true; res.velocity.y = 0f; }
                     }
                     res.position = after;
@@ -66,7 +68,7 @@ namespace Voxel.Runtime.Physics
                 {
                     Vector3 after = res.position + new Vector3(dx, 0f, 0f);
                     float corr = ResolveAxis(world, new Box(after, aabb.half), 0, dx);
-                    if (corr > 0f) { after.x += (dx < 0f ? +corr : -corr); res.velocity.x = 0f; res.hitX = true; }
+                    if (corr > 0f) { after.x += (dx < 0f ? +corr + SKIN : -corr - SKIN); res.velocity.x = 0f; res.hitX = true; }
                     res.position = after;
                 }
 
@@ -76,7 +78,7 @@ namespace Voxel.Runtime.Physics
                 {
                     Vector3 after = res.position + new Vector3(0f, 0f, dz);
                     float corr = ResolveAxis(world, new Box(after, aabb.half), 2, dz);
-                    if (corr > 0f) { after.z += (dz < 0f ? +corr : -corr); res.velocity.z = 0f; res.hitZ = true; }
+                    if (corr > 0f) { after.z += (dz < 0f ? +corr + SKIN : -corr - SKIN); res.velocity.z = 0f; res.hitZ = true; }
                     res.position = after;
                 }
             }

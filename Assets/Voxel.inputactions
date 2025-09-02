@@ -454,7 +454,7 @@
                     "path": "<Mouse>/leftButton",
                     "interactions": "",
                     "processors": "",
-                    "groups": "",
+                    "groups": ";Keyboard&Mouse",
                     "action": "Place",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -465,7 +465,7 @@
                     "path": "<Mouse>/rightButton",
                     "interactions": "",
                     "processors": "",
-                    "groups": "",
+                    "groups": ";Keyboard&Mouse",
                     "action": "Remove",
                     "isComposite": false,
                     "isPartOfComposite": false

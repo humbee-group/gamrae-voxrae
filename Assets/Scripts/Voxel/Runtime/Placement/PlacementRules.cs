@@ -12,7 +12,7 @@ namespace Voxel.Runtime.Placement
             var b = Voxel.Domain.Registry.BlockRegistry.Get(blockId);
 
             // Logs: axis via face
-            if (b is LogBlock)
+            if (b is ColumnBlock)
             {
                 var axis = ctx.Face switch
                 {

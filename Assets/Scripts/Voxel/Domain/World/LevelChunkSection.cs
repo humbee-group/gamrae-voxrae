@@ -1,6 +1,6 @@
 // Assets/Scripts/Voxel/Domain/World/LevelChunkSection.cs
-// Stockage 16³ + lecteur pour le mesher
-using System;
+// Stockage 16³ + lecteur + buffers de lumière
+
 using Voxel.Meshing;
 
 namespace Voxel.Domain.World
@@ -10,6 +10,11 @@ namespace Voxel.Domain.World
         public const int Size = 16;
         public readonly ushort[] ids = new ushort[Size*Size*Size];
         public readonly byte[]   st  = new byte  [Size*Size*Size];
+
+        // Lumière (0..15)
+        public readonly byte[] sky  = new byte[Size*Size*Size];
+        public readonly byte[] block= new byte[Size*Size*Size];
+
         public bool Dirty { get; private set; }
 
         public (ushort id, byte state) Get(int lx,int ly,int lz)
@@ -27,5 +32,11 @@ namespace Voxel.Domain.World
             ids[i]=id; st[i]=state; Dirty=true; return true;
         }
         public void ClearDirty()=>Dirty=false;
+
+        public int Index(int lx,int ly,int lz) => ((ly*Size)+lz)*Size+lx;
+        public byte GetSky(int lx,int ly,int lz)   => sky[Index(lx,ly,lz)];
+        public byte GetBlk(int lx,int ly,int lz)   => block[Index(lx,ly,lz)];
+        public void SetSky(int lx,int ly,int lz, byte v) => sky[Index(lx,ly,lz)] = v;
+        public void SetBlk(int lx,int ly,int lz, byte v) => block[Index(lx,ly,lz)] = v;
     }
 }
