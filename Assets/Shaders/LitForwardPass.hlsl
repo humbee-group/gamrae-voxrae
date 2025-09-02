@@ -24,8 +24,8 @@ struct Attributes
     float2 texcoord     : TEXCOORD0;
     float2 staticLightmapUV   : TEXCOORD1;
     float2 dynamicLightmapUV  : TEXCOORD2;
-    
-    float4 color        : COLOR;
+
+    float4 color        : COLOR;      // vertex color (RGB=sky, A=block)
 
     UNITY_VERTEX_INPUT_INSTANCE_ID
 };
@@ -65,7 +65,9 @@ struct Varyings
 #ifdef USE_APV_PROBE_OCCLUSION
     float4 probeOcclusion : TEXCOORD10;
 #endif
-    float4 vtxColor   : COLOR;
+
+    float4 vtxColor   : COLOR;            // vertex color interpolée
+
     float4 positionCS               : SV_POSITION;
     UNITY_VERTEX_INPUT_INSTANCE_ID
     UNITY_VERTEX_OUTPUT_STEREO
@@ -85,7 +87,7 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
 
     half3 viewDirWS = GetWorldSpaceNormalizeViewDir(input.positionWS);
 #if defined(_NORMALMAP) || defined(_DETAIL)
-    float sgn = input.tangentWS.w;      // should be either +1 or -1
+    float sgn = input.tangentWS.w;
     float3 bitangent = sgn * cross(input.normalWS.xyz, input.tangentWS.xyz);
     half3x3 tangentToWorld = half3x3(input.tangentWS.xyz, bitangent.xyz, input.normalWS.xyz);
 
@@ -154,7 +156,6 @@ void InitializeBakedGIData(Varyings input, inout InputData inputData)
 //                  Vertex and Fragment functions                            //
 ///////////////////////////////////////////////////////////////////////////////
 
-// Used in Standard (Physically Based) shader
 Varyings LitPassVertex(Attributes input)
 {
     Varyings output = (Varyings)0;
@@ -164,11 +165,7 @@ Varyings LitPassVertex(Attributes input)
     UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 
     VertexPositionInputs vertexInput = GetVertexPositionInputs(input.positionOS.xyz);
-
-    // normalWS and tangentWS already normalize.
-    // this is required to avoid skewing the direction during interpolation
-    // also required for per-vertex lighting and SH evaluation
-    VertexNormalInputs normalInput = GetVertexNormalInputs(input.normalOS, input.tangentOS);
+    VertexNormalInputs normalInput   = GetVertexNormalInputs(input.normalOS, input.tangentOS);
 
     half3 vertexLight = VertexLighting(vertexInput.positionWS, normalInput.normalWS);
 
@@ -177,10 +174,9 @@ Varyings LitPassVertex(Attributes input)
         fogFactor = ComputeFogFactor(vertexInput.positionCS.z);
     #endif
 
-    output.uv = TRANSFORM_TEX(input.texcoord, _BaseMap);
-    output.vtxColor = input.color;
+    output.uv       = TRANSFORM_TEX(input.texcoord, _BaseMap);
+    output.vtxColor = input.color;                       // passe la VC
 
-    // already normalized from normal transform to WS.
     output.normalWS = normalInput.normalWS;
 #if defined(REQUIRES_WORLD_SPACE_TANGENT_INTERPOLATOR) || defined(REQUIRES_TANGENT_SPACE_VIEW_DIR_INTERPOLATOR)
     real sign = input.tangentOS.w * GetOddNegativeScale();
@@ -220,7 +216,6 @@ Varyings LitPassVertex(Attributes input)
     return output;
 }
 
-// Used in Standard (Physically Based) shader
 void LitPassFragment(
     Varyings input
     , out half4 outColor : SV_Target0
@@ -245,22 +240,21 @@ void LitPassFragment(
     SurfaceData surfaceData;
     InitializeStandardLitSurfaceData(input.uv, surfaceData);
 
-// APRÈS — éclairage voxel réaliste
+    // === MC-like voxel lighting ===
+    // vtxColor: RGB = skylight [0..1], A = blocklight [0..1]
+    float skyL = saturate(input.vtxColor.r);
+    float blkL = saturate(input.vtxColor.a);
 
-// vtxColor : RGB = skylight [0..1], A = blocklight [0..1]
-// On prend la **dominante** (vanilla MC) pour l’éclairage diffus.
-float skyL  = input.vtxColor.r;            // RGB identiques → R suffit
-float blkL  = input.vtxColor.a;
-float L     = max(skyL, blkL);             // jour: L=sky, nuit: L=blk
-L = saturate(L);
+    // courbes douces (évite le "blanc")
+    float s = pow(skyL, 1.15);
+    float b = pow(blkL, 1.6);
 
-// Diffus = albedo * L
-surfaceData.albedo *= L;
+    // diffus = albedo * max(sky, block)
+    surfaceData.albedo *= max(s, b);
 
-// Émission TRES faible, seulement la nuit, et proportionnelle au blocklight.
-// Évite les halos blancs, et s’éteint totalement quand sky=1 (plein jour).
-float nightFactor = 1.0 - skyL;            // 0 jour, 1 nuit
-surfaceData.emission += blkL * nightFactor * _VertexEmission;
+    // emission faible uniquement la nuit (masquée en plein jour)
+    float night = 1.0 - s;                      // jour=0, nuit→1
+    surfaceData.emission += b * night * _VertexEmission;   // _VertexEmission ~ 0.05–0.12
 
 #ifdef LOD_FADE_CROSSFADE
     LODFadeCrossFade(input.positionCS);
